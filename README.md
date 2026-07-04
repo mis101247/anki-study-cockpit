@@ -116,7 +116,7 @@ http://127.0.0.1:8765
 http://127.0.0.1:8765
 ```
 
-建議 config：
+本機開發建議 config：
 
 ```json
 {
@@ -132,6 +132,8 @@ http://127.0.0.1:8765
   ]
 }
 ```
+
+這個 `apiKey: null` 範例只適合 `localhost` 本機開發。只要透過 ngrok、Vercel 或任何外部網址使用 AnkiConnect，就應該設定 `apiKey`，並把部署網站的 origin 加到 `webCorsOriginList`。
 
 ## 匯入格式
 
