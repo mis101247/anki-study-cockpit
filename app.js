@@ -157,14 +157,18 @@ const els = {
   manualFront: document.querySelector("#manual-front"),
   manualBack: document.querySelector("#manual-back"),
   ankiSettingsForm: document.querySelector("#anki-settings-form"),
+  ankiSettingsModal: document.querySelector("#anki-settings-modal"),
   ankiApiUrl: document.querySelector("#anki-api-url"),
   ankiApiKey: document.querySelector("#anki-api-key"),
+  closeAnkiSettings: document.querySelector("#close-anki-settings"),
+  settingsModalDismiss: document.querySelectorAll("[data-close-anki-settings]"),
   resetAnkiSettings: document.querySelector("#reset-anki-settings"),
   fileInput: document.querySelector("#file-input"),
   statusLine: document.querySelector("#status-line")
 };
 
 const saved = readSavedState();
+let lastSettingsTrigger = null;
 
 const state = {
   connected: false,
@@ -203,6 +207,10 @@ connectAndLoad();
 
 function bindEvents() {
   els.connectionCard.addEventListener("click", openAnkiSettings);
+  els.closeAnkiSettings.addEventListener("click", closeAnkiSettingsModal);
+  els.settingsModalDismiss.forEach((element) => {
+    element.addEventListener("click", closeAnkiSettingsModal);
+  });
   els.syncButton.addEventListener("click", connectAndLoad);
   els.reloadDeck.addEventListener("click", () => loadSelectedDeck(true));
   els.themeButton.addEventListener("click", toggleTheme);
@@ -793,15 +801,26 @@ function renderAnkiSettings() {
 }
 
 function openAnkiSettings() {
-  state.sideTab = "import";
-  saveState();
-  renderSideTab();
+  lastSettingsTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : els.connectionCard;
+  renderAnkiSettings();
+  els.ankiSettingsModal.hidden = false;
+  document.body.classList.add("modal-open");
   updateStatusLine("請填入 Anki API URL；儲存後會自動重新連線。");
 
   window.requestAnimationFrame(() => {
-    els.ankiApiUrl.scrollIntoView({ behavior: "smooth", block: "center" });
-    els.ankiApiUrl.focus({ preventScroll: true });
+    els.ankiApiUrl.focus();
+    els.ankiApiUrl.select();
   });
+}
+
+function closeAnkiSettingsModal() {
+  if (els.ankiSettingsModal.hidden) return;
+  els.ankiSettingsModal.hidden = true;
+  document.body.classList.remove("modal-open");
+
+  if (lastSettingsTrigger && document.contains(lastSettingsTrigger)) {
+    lastSettingsTrigger.focus();
+  }
 }
 
 function filteredCards() {
@@ -945,6 +964,7 @@ function saveAnkiSettings(event) {
   state.revealed = false;
   saveState();
   renderAnkiSettings();
+  closeAnkiSettingsModal();
   connectAndLoad();
 }
 
@@ -1194,6 +1214,14 @@ function bestDutchVoice() {
 }
 
 function handleKeyboard(event) {
+  if (!els.ankiSettingsModal.hidden) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeAnkiSettingsModal();
+    }
+    return;
+  }
+
   const target = event.target;
   const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement;
   if (isTyping) return;
