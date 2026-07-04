@@ -327,6 +327,11 @@ label,
   font-size: 0.88rem;
 }
 
+.ghost-button.is-speaking {
+  border-color: color-mix(in srgb, var(--butter) 72%, var(--border));
+  background: var(--honey);
+}
+
 .primary-button {
   padding: 0 18px;
   border-color: color-mix(in srgb, var(--honey) 72%, var(--border));
@@ -732,6 +737,13 @@ textarea {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
+}
+
+.hint-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .type-answer-box input {
@@ -1209,6 +1221,11 @@ textarea {
   }
 
   .type-answer-row {
+    grid-template-columns: 1fr;
+  }
+
+  .hint-row {
+    display: grid;
     grid-template-columns: 1fr;
   }
 

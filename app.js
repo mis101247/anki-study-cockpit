@@ -137,6 +137,8 @@ const els = {
   voiceSelect: document.querySelector("#voice-select"),
   answerInput: document.querySelector("#answer-input"),
   checkAnswer: document.querySelector("#check-answer"),
+  listenAnswer: document.querySelector("#listen-answer"),
+  hintButton: document.querySelector("#hint-button"),
   answerFeedback: document.querySelector("#answer-feedback"),
   answerBox: document.querySelector("#answer-box"),
   cardBack: document.querySelector("#card-back"),
@@ -185,6 +187,7 @@ const state = {
   filter: saved.filter || "all",
   sortAsc: saved.sortAsc ?? true,
   revealed: false,
+  hintLevel: 0,
   sideTab: saved.sideTab || "notes",
   voiceURI: DUTCH_LANG,
   darkMode: saved.darkMode || false,
@@ -253,9 +256,11 @@ function bindEvents() {
   els.skipButton.addEventListener("click", nextCard);
   els.fullscreenButton.addEventListener("click", () => document.body.classList.toggle("focus-mode"));
 
-  els.speakFront.addEventListener("click", () => speakCurrent("front"));
-  els.speakBack.addEventListener("click", () => speakCurrent("back"));
-  els.speakExample.addEventListener("click", () => speakCurrent("example"));
+  els.speakFront.addEventListener("click", () => speakCurrent("front", els.speakFront));
+  els.speakBack.addEventListener("click", () => speakCurrent("back", els.speakBack));
+  els.speakExample.addEventListener("click", () => speakCurrent("example", els.speakExample));
+  els.listenAnswer.addEventListener("click", () => playSpellingAnswer());
+  els.hintButton.addEventListener("click", showNextHint);
   els.checkAnswer.addEventListener("click", checkTypedAnswer);
   els.answerInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -367,6 +372,7 @@ async function loadSelectedDeck(forceAnki) {
 
   state.currentIndex = clamp(state.currentIndex, 0, Math.max(state.cards.length - 1, 0));
   state.revealed = false;
+  resetAnswerInput();
   saveState();
   render();
 }
@@ -727,7 +733,7 @@ function renderCard() {
   const card = currentCard();
   const hasCard = Boolean(card);
 
-  [els.revealButton, els.skipButton, els.speakFront, els.speakBack, els.speakExample, els.checkAnswer, ...els.ratingButtons].forEach((button) => {
+  [els.revealButton, els.skipButton, els.speakFront, els.speakBack, els.speakExample, els.checkAnswer, els.listenAnswer, els.hintButton, ...els.ratingButtons].forEach((button) => {
     button.disabled = !hasCard;
   });
   els.answerInput.disabled = !hasCard;
@@ -741,6 +747,7 @@ function renderCard() {
     els.cardExample.textContent = "";
     els.answerInput.value = "";
     els.answerFeedback.textContent = "沒有可練習的卡片。";
+    renderHintControls(card);
     return;
   }
 
@@ -752,6 +759,7 @@ function renderCard() {
   els.cardExample.textContent = state.revealed ? card.example || "這張卡沒有例句。" : "顯示答案後會出現例句。";
   els.answerInput.placeholder = card.expectedAnswers?.length ? "typ het ontbrekende woord" : "typ het antwoord";
   renderVoiceOptions();
+  renderHintControls(card);
 
   els.answerBox.classList.toggle("is-hidden", !state.revealed);
   document.querySelector(".example-box").classList.toggle("is-hidden", !state.revealed);
@@ -846,8 +854,12 @@ function currentCard() {
 }
 
 function setRevealed(value) {
+  const shouldReadFullAnswer = value && !state.revealed;
   state.revealed = value;
   renderCard();
+  if (shouldReadFullAnswer) {
+    speakCurrent("back", els.speakBack);
+  }
 }
 
 function nextCard() {
@@ -862,9 +874,11 @@ function nextCard() {
 function resetAnswerInput() {
   if (!els.answerInput || !els.answerFeedback) return;
   els.answerInput.value = "";
-  els.answerFeedback.textContent = "先輸入被遮住的荷蘭文，再檢查或顯示答案。";
+  els.answerFeedback.textContent = "先聽答案或輸入缺字；需要時可以用提示。";
   delete els.answerFeedback.dataset.checked;
   els.answerFeedback.className = "";
+  state.hintLevel = 0;
+  renderHintControls(currentCard());
 }
 
 function checkTypedAnswer() {
@@ -893,13 +907,100 @@ function checkTypedAnswer() {
   els.answerFeedback.className = correct ? "is-correct" : "is-wrong";
   els.answerFeedback.textContent = correct
     ? "答對了。"
-    : `再看一次。答案：${answers.join(" / ")}`;
+    : "還差一點，再聽一次或用下一段提示。";
 }
 
 function answerList(card) {
   return (card.expectedAnswers?.length ? card.expectedAnswers : [card.back])
     .map((answer) => stripHtml(answer))
     .filter(Boolean);
+}
+
+function renderHintControls(card) {
+  const answer = primarySpellingAnswer(card);
+  const speechText = answer ? extractDutchSpeechText(answer) : "";
+
+  els.listenAnswer.disabled = !card || !speechText;
+  els.hintButton.disabled = !card || !answer || state.revealed;
+  els.hintButton.textContent = state.hintLevel >= 3 ? "再聽一次" : `提示 ${state.hintLevel + 1}`;
+}
+
+function showNextHint() {
+  const card = currentCard();
+  const answer = primarySpellingAnswer(card);
+  if (!card || state.revealed || !answer) return;
+
+  delete els.answerFeedback.dataset.checked;
+  els.answerFeedback.className = "";
+  state.hintLevel = Math.min(state.hintLevel + 1, 3);
+
+  if (state.hintLevel === 1) {
+    const first = firstAnswerLetter(answer);
+    els.answerFeedback.textContent = first ? `提示 1：開頭是 ${first}` : "提示 1：這題沒有文字答案。";
+  } else if (state.hintLevel === 2) {
+    els.answerFeedback.textContent = `提示 2：${formatAnswerShape(answer)}`;
+  } else {
+    const played = playSpellingAnswer({ updateFeedback: false });
+    els.answerFeedback.textContent = played ? "提示 3：已播放答案發音。" : "提示 3：這題沒有可播放的荷蘭發音。";
+    els.answerFeedback.className = played ? "" : "is-warn";
+  }
+
+  renderHintControls(card);
+}
+
+function playSpellingAnswer(options = {}) {
+  const { updateFeedback = true } = options;
+  const card = currentCard();
+  const answer = primarySpellingAnswer(card);
+  const text = answer ? extractDutchSpeechText(answer) : "";
+
+  if (!card || !text) {
+    if (updateFeedback) {
+      delete els.answerFeedback.dataset.checked;
+      els.answerFeedback.className = "is-warn";
+      els.answerFeedback.textContent = "這題沒有可播放的荷蘭發音。";
+    }
+    return false;
+  }
+
+  speak(text, card.lang, els.listenAnswer);
+  if (updateFeedback) {
+    delete els.answerFeedback.dataset.checked;
+    els.answerFeedback.className = "";
+    els.answerFeedback.textContent = "已播放缺字發音，試著拼出來。";
+  }
+  return true;
+}
+
+function primarySpellingAnswer(card) {
+  if (!card) return "";
+  const answers = answerList(card);
+  return answers.find((answer) => extractDutchSpeechText(answer)) || answers[0] || "";
+}
+
+function firstAnswerLetter(answer) {
+  return Array.from(answer.trim()).find((char) => /[\p{L}\p{N}]/u.test(char)) || "";
+}
+
+function formatAnswerShape(answer) {
+  let hasShownFirst = false;
+  return Array.from(answer.trim())
+    .map((char) => {
+      if (/[\p{L}\p{N}]/u.test(char)) {
+        if (!hasShownFirst) {
+          hasShownFirst = true;
+          return char;
+        }
+        return "_";
+      }
+      if (/\s/u.test(char)) return " / ";
+      return char;
+    })
+    .join(" ")
+    .replace(/\s+\/\s+/g, " / ")
+    .replace(/\s+([,.;:!?])/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function normalizeAnswer(value) {
@@ -1056,6 +1157,7 @@ async function addManualCard(event) {
   state.revealed = false;
   els.manualFront.value = "";
   els.manualBack.value = "";
+  resetAnswerInput();
   saveState();
   render();
 }
@@ -1075,6 +1177,7 @@ async function importTextFile(event) {
   state.cards = [...cards, ...state.cards];
   state.currentIndex = 0;
   state.revealed = false;
+  resetAnswerInput();
   saveState();
   render();
   updateStatusLine(`已匯入 ${cards.length} 張卡片。`);
@@ -1150,7 +1253,7 @@ function getLocalDeckCards(deckName) {
   return structuredClone(deck?.cards || []);
 }
 
-function speakCurrent(field) {
+function speakCurrent(field, activeButton = els.speakFront) {
   const card = currentCard();
   if (!card || !("speechSynthesis" in window)) return;
 
@@ -1160,10 +1263,10 @@ function speakCurrent(field) {
     example: card.speech?.example || card.example
   }[field];
 
-  speak(text || card.front, card.lang);
+  speak(text || card.front, card.lang, activeButton);
 }
 
-function speak(text, fallbackLang) {
+function speak(text, fallbackLang, activeButton = els.speakFront) {
   const cleanText = extractDutchSpeechText(text);
   if (!cleanText || !("speechSynthesis" in window)) {
     updateStatusLine("沒有可朗讀的荷蘭文內容。");
@@ -1171,6 +1274,9 @@ function speak(text, fallbackLang) {
   }
 
   window.speechSynthesis.cancel();
+  [els.speakFront, els.speakBack, els.speakExample, els.listenAnswer].forEach((button) => {
+    button.classList.remove("is-speaking");
+  });
 
   const utterance = new SpeechSynthesisUtterance(cleanText);
   const voice = bestDutchVoice();
@@ -1181,9 +1287,9 @@ function speak(text, fallbackLang) {
   utterance.rate = 0.86;
   utterance.pitch = 1;
 
-  els.speakFront.classList.add("is-speaking");
-  utterance.onend = () => els.speakFront.classList.remove("is-speaking");
-  utterance.onerror = () => els.speakFront.classList.remove("is-speaking");
+  activeButton.classList.add("is-speaking");
+  utterance.onend = () => activeButton.classList.remove("is-speaking");
+  utterance.onerror = () => activeButton.classList.remove("is-speaking");
 
   window.speechSynthesis.speak(utterance);
 }

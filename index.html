@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=api-modal-20260704" />
+    <link rel="stylesheet" href="styles.css?v=study-flow-20260704" />
   </head>
   <body>
     <main class="app-shell">
@@ -160,7 +160,17 @@
                 <input id="answer-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="typ het antwoord" />
                 <button class="ghost-button" id="check-answer" type="button">檢查</button>
               </div>
-              <p id="answer-feedback">先輸入被遮住的荷蘭文，再檢查或顯示答案。</p>
+              <div class="hint-row" aria-label="提示與聽音">
+                <button class="ghost-button compact" id="listen-answer" type="button" title="只播放缺字答案">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 9v6h4l5 4V5L9 9H5Z" />
+                    <path d="M18 9.5a4 4 0 0 1 0 5" />
+                  </svg>
+                  <span>聽音拼字</span>
+                </button>
+                <button class="ghost-button compact" id="hint-button" type="button">提示 1</button>
+              </div>
+              <p id="answer-feedback">先聽答案或輸入缺字；需要時可以用提示。</p>
             </div>
 
             <div class="answer-box" id="answer-box">
@@ -304,6 +314,6 @@
       </section>
     </div>
 
-    <script src="app.js?v=api-modal-20260704" type="module"></script>
+    <script src="app.js?v=study-flow-20260704" type="module"></script>
   </body>
 </html>
