@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Anki 學習夥伴</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 28 28" role="img">
+              <path d="M14 3.8 22.8 9v10L14 24.2 5.2 19V9L14 3.8Z" fill="currentColor" opacity=".18" />
+              <path d="M9.2 16.8 14 8.8l4.8 8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M11.1 14h5.8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div>
+            <h1>Anki 學習夥伴</h1>
+            <p>專注學習，持續進步</p>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <div class="connection-card" id="connection-card">
+            <span class="status-dot" id="status-dot" aria-hidden="true"></span>
+            <div>
+              <strong id="connection-title">正在檢查 AnkiConnect</strong>
+              <span id="connection-detail">http://127.0.0.1:8765</span>
+            </div>
+          </div>
+
+          <button class="icon-button text-button" id="sync-button" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 11a8 8 0 0 0-14.6-4.5M4 5v5h5M4 13a8 8 0 0 0 14.6 4.5M20 19v-5h-5" />
+            </svg>
+            <span>同步</span>
+          </button>
+
+          <button class="icon-button" id="theme-button" type="button" aria-label="切換明暗模式" title="切換明暗模式">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M21 13.2A7.2 7.2 0 0 1 10.8 3a8.5 8.5 0 1 0 10.2 10.2Z" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <section class="summary-strip" aria-label="學習摘要">
+        <div class="deck-picker">
+          <label for="deck-select">選擇牌組</label>
+          <div class="select-row">
+            <select id="deck-select"></select>
+            <button class="icon-button" id="reload-deck" type="button" aria-label="重新整理牌組" title="重新整理牌組">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 12a8 8 0 0 1 13.2-6.1M20 5v5h-5M20 12a8 8 0 0 1-13.2 6.1M4 19v-5h5" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="progress-card">
+          <div>
+            <label>學習進度</label>
+            <strong><span id="progress-done">0</span> / <span id="progress-total">0</span></strong>
+          </div>
+          <div class="progress-track" aria-hidden="true">
+            <span id="progress-bar"></span>
+          </div>
+          <span id="progress-percent">0%</span>
+        </div>
+
+        <div class="deck-stats-card" aria-label="Anki 牌組統計">
+          <div>
+            <label>新卡片</label>
+            <strong class="stat-new" id="deck-new-count">0</strong>
+          </div>
+          <div>
+            <label>學習中</label>
+            <strong class="stat-learn" id="deck-learn-count">0</strong>
+          </div>
+          <div>
+            <label>已到期</label>
+            <strong class="stat-review" id="deck-review-count">0</strong>
+          </div>
+        </div>
+
+        <div class="time-card">
+          <span class="ring-meter" id="time-ring">0</span>
+          <div>
+            <label>預估剩餘</label>
+            <strong id="time-left">0 分鐘</strong>
+          </div>
+        </div>
+      </section>
+
+      <div class="workspace">
+        <aside class="queue-panel" aria-label="學習佇列">
+          <div class="panel-heading">
+            <div>
+              <h2>學習佇列</h2>
+              <span id="queue-count">0 張</span>
+            </div>
+            <button class="icon-button" id="sort-button" type="button" aria-label="切換排序" title="切換排序">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 4v16M4 17l3 3 3-3M17 20V4M14 7l3-3 3 3" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="queue-filters" role="group" aria-label="佇列篩選">
+            <button class="chip is-active" data-filter="all" type="button">全部</button>
+            <button class="chip" data-filter="due" type="button">到期</button>
+            <button class="chip" data-filter="marked" type="button">標記</button>
+          </div>
+
+          <ol class="queue-list" id="queue-list"></ol>
+        </aside>
+
+        <section class="study-panel" aria-label="卡片練習">
+          <div class="card-tabs" role="tablist" aria-label="卡片面向">
+            <button class="tab is-active" id="front-tab" type="button">正面</button>
+            <button class="tab" id="back-tab" type="button">背面</button>
+            <button class="ghost-button compact" id="fullscreen-button" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 4H4v5M4 4l6 6M15 4h5v5M20 4l-6 6M9 20H4v-5M4 20l6-6M15 20h5v-5M20 20l-6-6" />
+              </svg>
+              <span>專注</span>
+            </button>
+          </div>
+
+          <article class="flashcard" id="flashcard">
+            <div class="card-meta">
+              <span id="card-type">學習卡</span>
+              <span id="card-due">示範</span>
+            </div>
+
+            <div class="prompt-row">
+              <h2 id="card-front">載入中</h2>
+              <button class="round-audio" id="speak-front" type="button" aria-label="播放正面發音" title="播放正面發音">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 9v6h4l5 4V5L9 9H5Z" />
+                  <path d="M18 9.5a4 4 0 0 1 0 5" />
+                </svg>
+              </button>
+            </div>
+
+            <div class="phonetic-row">
+              <span id="card-phonetic">/...</span>
+              <select id="voice-select" aria-label="選擇發音語音"></select>
+            </div>
+
+            <div class="type-answer-box">
+              <label for="answer-input">輸入答案</label>
+              <div class="type-answer-row">
+                <input id="answer-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="typ het antwoord" />
+                <button class="ghost-button" id="check-answer" type="button">檢查</button>
+              </div>
+              <p id="answer-feedback">先輸入被遮住的荷蘭文，再檢查或顯示答案。</p>
+            </div>
+
+            <div class="answer-box" id="answer-box">
+              <label>答案</label>
+              <p id="card-back">按下顯示答案</p>
+              <button class="ghost-button" id="speak-back" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 9v6h4l5 4V5L9 9H5Z" />
+                  <path d="M18 9.5a4 4 0 0 1 0 5" />
+                </svg>
+                <span>朗讀答案</span>
+              </button>
+            </div>
+
+            <div class="example-box">
+              <label>例句</label>
+              <p id="card-example">顯示答案後會出現例句。</p>
+              <button class="ghost-button compact" id="speak-example" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 9v6h4l5 4V5L9 9H5Z" />
+                  <path d="M18 9.5a4 4 0 0 1 0 5" />
+                </svg>
+                <span>朗讀</span>
+              </button>
+            </div>
+
+            <div class="card-actions">
+              <button class="primary-button" id="reveal-button" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                  <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                </svg>
+                <span>顯示答案</span>
+              </button>
+              <button class="ghost-button" id="skip-button" type="button">下一張</button>
+            </div>
+          </article>
+
+          <div class="rating-grid" aria-label="評分">
+            <button class="rating again" data-ease="1" type="button">
+              <span>再來一次</span>
+              <strong>Again</strong>
+              <small>&lt; 1 分鐘</small>
+            </button>
+            <button class="rating hard" data-ease="2" type="button">
+              <span>困難</span>
+              <strong>Hard</strong>
+              <small>5 分鐘</small>
+            </button>
+            <button class="rating good" data-ease="3" type="button">
+              <span>普通</span>
+              <strong>Good</strong>
+              <small>15 分鐘</small>
+            </button>
+            <button class="rating easy" data-ease="4" type="button">
+              <span>簡單</span>
+              <strong>Easy</strong>
+              <small>4 天</small>
+            </button>
+          </div>
+        </section>
+
+        <aside class="side-panel" aria-label="筆記與匯入">
+          <div class="side-tabs" role="tablist" aria-label="側欄">
+            <button class="side-tab is-active" data-side-tab="notes" type="button">筆記</button>
+            <button class="side-tab" data-side-tab="history" type="button">歷史記錄</button>
+            <button class="side-tab" data-side-tab="import" type="button">設定</button>
+          </div>
+
+          <section class="side-section is-active" id="notes-panel">
+            <label class="field-label" for="note-input">我的筆記</label>
+            <textarea id="note-input" rows="5" placeholder="快速筆記..."></textarea>
+
+            <div class="tag-row" aria-label="標籤">
+              <button class="tag-button important" data-tag="important" type="button">重要</button>
+              <button class="tag-button foggy" data-tag="foggy" type="button">易混淆</button>
+              <button class="tag-button known" data-tag="known" type="button">已掌握</button>
+            </div>
+
+            <button class="primary-button full" id="save-note" type="button">儲存筆記</button>
+          </section>
+
+          <section class="side-section" id="history-panel">
+            <h2>學習歷史</h2>
+            <ul class="history-list" id="history-list"></ul>
+          </section>
+
+          <section class="side-section" id="import-panel">
+            <form class="manual-form" id="manual-form">
+              <label class="field-label" for="manual-front">正面</label>
+              <input id="manual-front" type="text" autocomplete="off" />
+
+              <label class="field-label" for="manual-back">背面</label>
+              <textarea id="manual-back" rows="4"></textarea>
+
+              <button class="primary-button full" type="submit">手動新增</button>
+            </form>
+
+            <label class="drop-zone" for="file-input">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3v12M8 7l4-4 4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+              </svg>
+              <span>CSV / TXT</span>
+            </label>
+            <input id="file-input" type="file" accept=".csv,.txt,text/csv,text/plain" hidden />
+
+            <form class="anki-settings-form" id="anki-settings-form">
+              <label class="field-label" for="anki-api-url">Anki API URL</label>
+              <input id="anki-api-url" type="text" autocomplete="off" placeholder="https://example.ngrok-free.app" />
+
+              <label class="field-label" for="anki-api-key">API Key</label>
+              <input id="anki-api-key" type="password" autocomplete="off" placeholder="選填" />
+
+              <div class="settings-actions">
+                <button class="ghost-button" id="reset-anki-settings" type="button">重設</button>
+                <button class="primary-button" type="submit">儲存設定</button>
+              </div>
+            </form>
+          </section>
+
+          <p class="status-line" id="status-line" role="status">準備中</p>
+        </aside>
+      </div>
+    </main>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>

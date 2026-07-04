@@ -1,0 +1,12 @@
+{
+  "name": "anki-study-cockpit",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-static.mjs",
+    "dev": "python3 -m http.server 4182",
+    "dev:remote": "node server.mjs",
+    "check": "node --check app.js && node --check server.mjs && node --check scripts/build-static.mjs"
+  }
+}
