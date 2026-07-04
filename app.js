@@ -202,6 +202,7 @@ renderSideTab();
 connectAndLoad();
 
 function bindEvents() {
+  els.connectionCard.addEventListener("click", openAnkiSettings);
   els.syncButton.addEventListener("click", connectAndLoad);
   els.reloadDeck.addEventListener("click", () => loadSelectedDeck(true));
   els.themeButton.addEventListener("click", toggleTheme);
@@ -789,6 +790,18 @@ function renderSideTab() {
 function renderAnkiSettings() {
   els.ankiApiUrl.value = state.ankiUrl;
   els.ankiApiKey.value = state.ankiKey;
+}
+
+function openAnkiSettings() {
+  state.sideTab = "import";
+  saveState();
+  renderSideTab();
+  updateStatusLine("請填入 Anki API URL；儲存後會自動重新連線。");
+
+  window.requestAnimationFrame(() => {
+    els.ankiApiUrl.scrollIntoView({ behavior: "smooth", block: "center" });
+    els.ankiApiUrl.focus({ preventScroll: true });
+  });
 }
 
 function filteredCards() {

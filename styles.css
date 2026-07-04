@@ -206,7 +206,11 @@ label,
   padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  appearance: none;
   background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
 }
 
 .connection-card strong,
@@ -224,6 +228,11 @@ label,
   max-width: 215px;
   font-size: 0.78rem;
   text-overflow: ellipsis;
+}
+
+.connection-card:hover {
+  border-color: color-mix(in srgb, var(--teal) 42%, var(--border));
+  background: var(--panel-soft);
 }
 
 .status-dot {
