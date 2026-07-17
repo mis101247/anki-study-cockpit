@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=study-flow-20260704" />
+    <link rel="stylesheet" href="styles.css?v=ai-coach-20260717" />
   </head>
   <body>
     <main class="app-shell">
@@ -235,10 +235,20 @@
 
         <aside class="side-panel" aria-label="筆記與匯入">
           <div class="side-tabs" role="tablist" aria-label="側欄">
+            <button class="side-tab" data-side-tab="ai" type="button">AI 教練</button>
             <button class="side-tab is-active" data-side-tab="notes" type="button">筆記</button>
             <button class="side-tab" data-side-tab="history" type="button">歷史記錄</button>
             <button class="side-tab" data-side-tab="import" type="button">匯入</button>
           </div>
+
+          <section class="side-section" id="ai-panel">
+            <div class="ai-panel-heading">
+              <h2>AI 教練</h2>
+              <button class="ghost-button compact" id="ai-generate" type="button">講解這張</button>
+            </div>
+            <p class="ai-status" id="ai-status">選一張卡後產生講解。</p>
+            <div class="ai-content" id="ai-content"></div>
+          </section>
 
           <section class="side-section is-active" id="notes-panel">
             <label class="field-label" for="note-input">我的筆記</label>
@@ -289,8 +299,8 @@
       <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="anki-settings-title" aria-describedby="anki-settings-description">
         <div class="modal-heading">
           <div>
-            <h2 id="anki-settings-title">連線 AnkiConnect</h2>
-            <p id="anki-settings-description">設定 API URL 與 API Key</p>
+            <h2 id="anki-settings-title">連線設定</h2>
+            <p id="anki-settings-description">設定 AnkiConnect 與 AI API</p>
           </div>
           <button class="icon-button" id="close-anki-settings" type="button" aria-label="關閉連線設定" title="關閉">
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -306,6 +316,9 @@
           <label class="field-label" for="anki-api-key">API Key</label>
           <input id="anki-api-key" type="password" autocomplete="off" placeholder="選填" />
 
+          <label class="field-label" for="ai-api-url">AI API URL</label>
+          <input id="ai-api-url" type="text" autocomplete="off" placeholder="/api/cli-proxy" />
+
           <div class="settings-actions">
             <button class="ghost-button" id="reset-anki-settings" type="button">重設</button>
             <button class="primary-button" type="submit">儲存設定</button>
@@ -314,6 +327,6 @@
       </section>
     </div>
 
-    <script src="app.js?v=study-flow-20260704" type="module"></script>
+    <script src="app.js?v=ai-coach-20260717" type="module"></script>
   </body>
 </html>

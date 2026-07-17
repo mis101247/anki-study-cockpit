@@ -155,6 +155,9 @@ const els = {
   tagButtons: document.querySelectorAll(".tag-button"),
   saveNote: document.querySelector("#save-note"),
   historyList: document.querySelector("#history-list"),
+  aiGenerate: document.querySelector("#ai-generate"),
+  aiStatus: document.querySelector("#ai-status"),
+  aiContent: document.querySelector("#ai-content"),
   manualForm: document.querySelector("#manual-form"),
   manualFront: document.querySelector("#manual-front"),
   manualBack: document.querySelector("#manual-back"),
@@ -162,6 +165,7 @@ const els = {
   ankiSettingsModal: document.querySelector("#anki-settings-modal"),
   ankiApiUrl: document.querySelector("#anki-api-url"),
   ankiApiKey: document.querySelector("#anki-api-key"),
+  aiApiUrl: document.querySelector("#ai-api-url"),
   closeAnkiSettings: document.querySelector("#close-anki-settings"),
   settingsModalDismiss: document.querySelectorAll("[data-close-anki-settings]"),
   resetAnkiSettings: document.querySelector("#reset-anki-settings"),
@@ -195,6 +199,10 @@ const state = {
   deckStats: null,
   ankiUrl: saved.ankiUrl || readAnkiUrlParam() || getDefaultAnkiEndpoint(),
   ankiKey: saved.ankiKey || "",
+  aiUrl: saved.aiUrl || readAiUrlParam() || getDefaultAiEndpoint(),
+  aiHelp: {},
+  aiLoading: false,
+  aiError: "",
   lastAnkiError: ""
 };
 
@@ -297,6 +305,7 @@ function bindEvents() {
     button.addEventListener("click", () => toggleTag(button.dataset.tag));
   });
 
+  els.aiGenerate.addEventListener("click", generateAiCoach);
   els.manualForm.addEventListener("submit", addManualCard);
   els.fileInput.addEventListener("change", importTextFile);
   els.ankiSettingsForm.addEventListener("submit", saveAnkiSettings);
@@ -656,6 +665,7 @@ function render() {
   renderQueue();
   renderCard();
   renderNotes();
+  renderAiCoach();
   renderHistory();
 }
 
@@ -782,6 +792,31 @@ function renderNotes() {
   });
 }
 
+function renderAiCoach() {
+  const card = currentCard();
+  const content = card ? state.aiHelp[card.id] || "" : "";
+
+  els.aiGenerate.disabled = !card || state.aiLoading || !state.aiUrl;
+  els.aiGenerate.textContent = state.aiLoading ? "產生中..." : content ? "重新講解" : "講解這張";
+  els.aiContent.textContent = content;
+  els.aiStatus.className = "ai-status";
+
+  if (!card) {
+    els.aiStatus.textContent = "沒有可講解的卡片。";
+  } else if (!state.aiUrl) {
+    els.aiStatus.textContent = "請先在連線設定填入 AI API URL。";
+  } else if (state.aiLoading) {
+    els.aiStatus.textContent = "AI 正在整理這張卡。";
+  } else if (state.aiError) {
+    els.aiStatus.textContent = `AI 講解失敗：${state.aiError}`;
+    els.aiStatus.classList.add("is-error");
+  } else if (content) {
+    els.aiStatus.textContent = "已產生這張卡的學習講解。";
+  } else {
+    els.aiStatus.textContent = "按下講解這張，產生意思、例句與發音提示。";
+  }
+}
+
 function renderHistory() {
   const recent = state.history.slice(0, 7);
   els.historyList.innerHTML = recent.map((item) => `
@@ -806,6 +841,7 @@ function renderSideTab() {
 function renderAnkiSettings() {
   els.ankiApiUrl.value = state.ankiUrl;
   els.ankiApiKey.value = state.ankiKey;
+  els.aiApiUrl.value = state.aiUrl;
 }
 
 function openAnkiSettings() {
@@ -878,6 +914,7 @@ function resetAnswerInput() {
   delete els.answerFeedback.dataset.checked;
   els.answerFeedback.className = "";
   state.hintLevel = 0;
+  state.aiError = "";
   renderHintControls(currentCard());
 }
 
@@ -1057,10 +1094,133 @@ function saveCurrentNote() {
   updateStatusLine("筆記已儲存。");
 }
 
+async function generateAiCoach() {
+  const card = currentCard();
+  if (!card || state.aiLoading) return;
+
+  state.sideTab = "ai";
+  state.aiLoading = true;
+  state.aiError = "";
+  saveState();
+  renderSideTab();
+  renderAiCoach();
+
+  try {
+    const text = await aiInvoke(card);
+    state.aiHelp[card.id] = text;
+    state.aiError = "";
+    updateStatusLine("AI 講解已產生。");
+  } catch (error) {
+    state.aiError = error.message;
+    updateStatusLine(`AI 講解失敗：${error.message}`);
+  } finally {
+    state.aiLoading = false;
+    renderAiCoach();
+  }
+}
+
+async function aiInvoke(card) {
+  const prompt = buildAiPrompt(card);
+  const payload = {
+    messages: [
+      {
+        role: "system",
+        content: "你是荷蘭語 A2/B1 詞彙教練。用繁體中文教學，荷蘭文保留原文。回答要精準、實用、可直接拿來複習。"
+      },
+      { role: "user", content: prompt }
+    ],
+    temperature: 0.35
+  };
+
+  let response = await postAiPayload(payload);
+  if (!response.ok && [400, 404, 422].includes(response.status)) {
+    response = await postAiPayload({ prompt, temperature: 0.35 });
+  }
+
+  const responseText = await response.text();
+  if (!response.ok) {
+    throw new Error(responseText || `HTTP ${response.status}`);
+  }
+
+  const parsed = parseAiResponse(responseText);
+  const text = extractAiText(parsed);
+  if (!text) {
+    throw new Error("AI 回傳格式沒有可顯示的文字。");
+  }
+  return text.trim();
+}
+
+function postAiPayload(payload) {
+  return fetch(state.aiUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+}
+
+function buildAiPrompt(card) {
+  const target = targetWordForAi(card);
+  const fullSentence = card.speech?.back || extractDutchSpeechText(card.back) || card.back;
+  const meaning = stripHtml(card.back || "");
+  const example = stripHtml(card.example || "");
+  const answers = answerList(card).join(" / ");
+
+  return `請針對這張 Anki 卡教我真的學會這個荷蘭語單字或片語。
+
+目標：${target}
+題目：${stripHtml(card.front)}
+答案：${answers || meaning}
+完整句：${fullSentence}
+補充：${example || "無"}
+
+請固定用以下段落，總長控制在 500 字以內：
+1. 核心意思：用繁體中文講清楚，不要只翻譯。
+2. 怎麼用：說明常見搭配、語感、容易混淆的點。
+3. 發音：用台灣學習者看得懂的方式拆音，並標出重音或容易錯的音。
+4. 例句：給 2 句 A2/B1 荷蘭文例句，每句附繁中翻譯。
+5. 記憶鉤子：給一個短短的記憶法。
+6. 小練習：給一題填空題，不要立刻給答案。`;
+}
+
+function targetWordForAi(card) {
+  const answers = answerList(card);
+  const dutchAnswer = answers.find((answer) => extractDutchSpeechText(answer));
+  return dutchAnswer || extractDutchSpeechText(card.front) || answers[0] || stripHtml(card.front);
+}
+
+function parseAiResponse(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function extractAiText(value) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (typeof value.output_text === "string") return value.output_text;
+  if (typeof value.text === "string") return value.text;
+  if (typeof value.content === "string") return value.content;
+  if (typeof value.message === "string") return value.message;
+  if (typeof value.result === "string") return value.result;
+  if (value.result) return extractAiText(value.result);
+
+  const choice = value.choices?.[0];
+  if (choice?.message?.content) return extractAiText(choice.message.content);
+  if (choice?.text) return extractAiText(choice.text);
+
+  const output = value.output?.[0]?.content?.[0];
+  if (output?.text) return output.text;
+
+  return "";
+}
+
 function saveAnkiSettings(event) {
   event.preventDefault();
   state.ankiUrl = normalizeAnkiUrl(els.ankiApiUrl.value);
   state.ankiKey = els.ankiApiKey.value.trim();
+  state.aiUrl = normalizeApiUrl(els.aiApiUrl.value);
   state.currentIndex = 0;
   state.revealed = false;
   saveState();
@@ -1072,6 +1232,7 @@ function saveAnkiSettings(event) {
 function resetAnkiSettings() {
   state.ankiUrl = getDefaultAnkiEndpoint();
   state.ankiKey = "";
+  state.aiUrl = getDefaultAiEndpoint();
   state.currentIndex = 0;
   state.revealed = false;
   saveState();
@@ -1080,6 +1241,10 @@ function resetAnkiSettings() {
 }
 
 function normalizeAnkiUrl(value) {
+  return value.trim().replace(/\/+$/, "");
+}
+
+function normalizeApiUrl(value) {
   return value.trim().replace(/\/+$/, "");
 }
 
@@ -1365,9 +1530,18 @@ function getDefaultAnkiEndpoint() {
   return localHosts.has(window.location.hostname) ? "http://127.0.0.1:8765" : "";
 }
 
+function getDefaultAiEndpoint() {
+  return window.location.origin ? `${window.location.origin}/api/cli-proxy` : "/api/cli-proxy";
+}
+
 function readAnkiUrlParam() {
   const value = new URLSearchParams(window.location.search).get("ankiUrl");
   return value ? normalizeAnkiUrl(value) : "";
+}
+
+function readAiUrlParam() {
+  const value = new URLSearchParams(window.location.search).get("aiUrl");
+  return value ? normalizeApiUrl(value) : "";
 }
 
 function quoteSearch(value) {
@@ -1448,7 +1622,8 @@ function saveState() {
     voiceURI: DUTCH_LANG,
     darkMode: state.darkMode,
     ankiUrl: state.ankiUrl,
-    ankiKey: state.ankiKey
+    ankiKey: state.ankiKey,
+    aiUrl: state.aiUrl
   };
   localStorage.setItem(STORE_KEY, JSON.stringify(payload));
 }

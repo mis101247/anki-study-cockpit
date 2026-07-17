@@ -887,7 +887,7 @@ textarea {
 
 .side-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
   margin-bottom: 18px;
 }
@@ -912,6 +912,41 @@ textarea {
 
 .side-section.is-active {
   display: block;
+}
+
+.ai-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.ai-status {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.ai-status.is-error {
+  color: var(--coral);
+  font-weight: 800;
+}
+
+.ai-content {
+  max-height: 460px;
+  overflow: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.95rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.ai-content:empty {
+  display: none;
 }
 
 .tag-row {

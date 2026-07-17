@@ -116,6 +116,18 @@ http://127.0.0.1:8765
 http://127.0.0.1:8765
 ```
 
+## AI 教練
+
+右側 `AI 教練` 分頁可以針對目前卡片產生單字講解、例句、發音提示、記憶鉤子與小練習。
+
+到連線設定填入 `AI API URL`，可以使用同網域 proxy：
+
+```text
+/api/cli-proxy
+```
+
+或填完整的 `cli-proxy-api` 網址。網站會送出 OpenAI-compatible `messages` payload；如果 proxy 不支援，會退回 `{ "prompt": "..." }` 的簡單格式。
+
 本機開發建議 config：
 
 ```json
