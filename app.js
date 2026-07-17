@@ -155,6 +155,7 @@ const els = {
   tagButtons: document.querySelectorAll(".tag-button"),
   saveNote: document.querySelector("#save-note"),
   historyList: document.querySelector("#history-list"),
+  aiSettings: document.querySelector("#ai-settings"),
   aiGenerate: document.querySelector("#ai-generate"),
   aiStatus: document.querySelector("#ai-status"),
   aiContent: document.querySelector("#ai-content"),
@@ -199,7 +200,7 @@ const state = {
   deckStats: null,
   ankiUrl: saved.ankiUrl || readAnkiUrlParam() || getDefaultAnkiEndpoint(),
   ankiKey: saved.ankiKey || "",
-  aiUrl: saved.aiUrl || readAiUrlParam() || getDefaultAiEndpoint(),
+  aiUrl: readAiUrlParam() || normalizeSavedAiUrl(saved.aiUrl) || getDefaultAiEndpoint(),
   aiHelp: {},
   aiLoading: false,
   aiError: "",
@@ -217,7 +218,7 @@ renderSideTab();
 connectAndLoad();
 
 function bindEvents() {
-  els.connectionCard.addEventListener("click", openAnkiSettings);
+  els.connectionCard.addEventListener("click", () => openAnkiSettings());
   els.closeAnkiSettings.addEventListener("click", closeAnkiSettingsModal);
   els.settingsModalDismiss.forEach((element) => {
     element.addEventListener("click", closeAnkiSettingsModal);
@@ -305,6 +306,7 @@ function bindEvents() {
     button.addEventListener("click", () => toggleTag(button.dataset.tag));
   });
 
+  els.aiSettings.addEventListener("click", () => openAnkiSettings("ai"));
   els.aiGenerate.addEventListener("click", generateAiCoach);
   els.manualForm.addEventListener("submit", addManualCard);
   els.fileInput.addEventListener("change", importTextFile);
@@ -804,7 +806,7 @@ function renderAiCoach() {
   if (!card) {
     els.aiStatus.textContent = "沒有可講解的卡片。";
   } else if (!state.aiUrl) {
-    els.aiStatus.textContent = "請先在連線設定填入 AI API URL。";
+    els.aiStatus.textContent = "請先按設定填入你的 cli-proxy-api URL。";
   } else if (state.aiLoading) {
     els.aiStatus.textContent = "AI 正在整理這張卡。";
   } else if (state.aiError) {
@@ -844,16 +846,17 @@ function renderAnkiSettings() {
   els.aiApiUrl.value = state.aiUrl;
 }
 
-function openAnkiSettings() {
+function openAnkiSettings(focusField = "anki") {
   lastSettingsTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : els.connectionCard;
   renderAnkiSettings();
   els.ankiSettingsModal.hidden = false;
   document.body.classList.add("modal-open");
-  updateStatusLine("請填入 Anki API URL；儲存後會自動重新連線。");
+  updateStatusLine("請填入連線設定；儲存後會自動重新連線。");
 
   window.requestAnimationFrame(() => {
-    els.ankiApiUrl.focus();
-    els.ankiApiUrl.select();
+    const target = focusField === "ai" ? els.aiApiUrl : els.ankiApiUrl;
+    target.focus();
+    target.select();
   });
 }
 
@@ -1531,7 +1534,7 @@ function getDefaultAnkiEndpoint() {
 }
 
 function getDefaultAiEndpoint() {
-  return window.location.origin ? `${window.location.origin}/api/cli-proxy` : "/api/cli-proxy";
+  return "";
 }
 
 function readAnkiUrlParam() {
@@ -1542,6 +1545,13 @@ function readAnkiUrlParam() {
 function readAiUrlParam() {
   const value = new URLSearchParams(window.location.search).get("aiUrl");
   return value ? normalizeApiUrl(value) : "";
+}
+
+function normalizeSavedAiUrl(value) {
+  const normalized = normalizeApiUrl(value || "");
+  const oldDefault = `${window.location.origin}/api/cli-proxy`;
+  if (normalized === "/api/cli-proxy" || normalized === oldDefault) return "";
+  return normalized;
 }
 
 function quoteSearch(value) {

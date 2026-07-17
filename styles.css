@@ -922,6 +922,13 @@ textarea {
   margin-bottom: 12px;
 }
 
+.ai-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .ai-status {
   margin: 0 0 12px;
   color: var(--muted);

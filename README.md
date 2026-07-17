@@ -123,10 +123,10 @@ http://127.0.0.1:8765
 到連線設定填入 `AI API URL`，可以使用同網域 proxy：
 
 ```text
-/api/cli-proxy
+https://你的-cli-proxy-api.example
 ```
 
-或填完整的 `cli-proxy-api` 網址。網站會送出 OpenAI-compatible `messages` payload；如果 proxy 不支援，會退回 `{ "prompt": "..." }` 的簡單格式。
+Vercel 靜態部署不會自動提供 `/api/cli-proxy`。如果你另外部署了同網域 API route，才需要填 `/api/cli-proxy`。網站會送出 OpenAI-compatible `messages` payload；如果 proxy 不支援，會退回 `{ "prompt": "..." }` 的簡單格式。
 
 本機開發建議 config：
 

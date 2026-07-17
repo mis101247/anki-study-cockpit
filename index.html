@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=ai-coach-20260717" />
+    <link rel="stylesheet" href="styles.css?v=ai-url-settings-20260717" />
   </head>
   <body>
     <main class="app-shell">
@@ -244,7 +244,10 @@
           <section class="side-section" id="ai-panel">
             <div class="ai-panel-heading">
               <h2>AI 教練</h2>
-              <button class="ghost-button compact" id="ai-generate" type="button">講解這張</button>
+              <div class="ai-panel-actions">
+                <button class="ghost-button compact" id="ai-settings" type="button">設定</button>
+                <button class="ghost-button compact" id="ai-generate" type="button">講解這張</button>
+              </div>
             </div>
             <p class="ai-status" id="ai-status">選一張卡後產生講解。</p>
             <div class="ai-content" id="ai-content"></div>
@@ -317,7 +320,7 @@
           <input id="anki-api-key" type="password" autocomplete="off" placeholder="選填" />
 
           <label class="field-label" for="ai-api-url">AI API URL</label>
-          <input id="ai-api-url" type="text" autocomplete="off" placeholder="/api/cli-proxy" />
+          <input id="ai-api-url" type="text" autocomplete="off" placeholder="https://你的-cli-proxy-api.example" />
 
           <div class="settings-actions">
             <button class="ghost-button" id="reset-anki-settings" type="button">重設</button>
@@ -327,6 +330,6 @@
       </section>
     </div>
 
-    <script src="app.js?v=ai-coach-20260717" type="module"></script>
+    <script src="app.js?v=ai-url-settings-20260717" type="module"></script>
   </body>
 </html>
